@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Healthcare Pattern Recognition — XAI Demo</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,sans-serif;background:#f0eff0;min-height:100vh;padding:20px 12px}
+.app{max-width:720px;margin:0 auto;background:#ffffff;border-radius:14px;padding:24px;box-shadow:0 2px 20px rgba(0,0,0,.10)}
+h1{font-size:20px;font-weight:700;color:#111;margin-bottom:3px}
+.subtitle{font-size:11px;color:#999;margin-bottom:20px;letter-spacing:.5px;text-transform:uppercase}
+
+/* TABS */
+.tabs{display:flex;gap:4px;background:#f0eff0;padding:4px;border-radius:10px;margin-bottom:20px}
+.tab{flex:1;padding:8px 4px;font-size:11px;font-weight:600;border:none;border-radius:7px;cursor:pointer;background:transparent;color:#888;transition:all .15s;white-space:nowrap}
+.tab.on{background:#fff;color:#111;box-shadow:0 1px 5px rgba(0,0,0,.12)}
+
+/* PANELS */
+.panel{display:none}
+.panel.on{display:block}
+
+/* FILTER BUTTONS */
+.filters{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.flabel{font-size:12px;color:#888}
+.fbtn{padding:5px 12px;font-size:11px;font-weight:600;border:1.5px solid #ddd;border-radius:20px;background:#f5f5f3;color:#666;cursor:pointer}
+.fbtn.on{background:#4f3ef5;color:#fff;border-color:#4f3ef5}
+
+/* PULSE */
+.pulse{display:inline-block;width:7px;height:7px;border-radius:50%;background:#1a6e3c;margin-right:5px;animation:pu 1.5s ease-in-out infinite;vertical-align:middle}
+@keyframes pu{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* TIMELINE */
+.tbar{height:4px;background:#e5e5e2;border-radius:2px;margin-bottom:14px;overflow:hidden}
+.tfill{height:100%;background:#4f3ef5;border-radius:2px}
+
+/* EVENT CARDS */
+.estream{display:flex;flex-direction:column;gap:8px;margin-bottom:14px}
+.ecard{background:#f9f9f7;border:1.5px solid #e5e5e2;border-radius:10px;padding:12px 12px 12px 14px;cursor:pointer;position:relative}
+.ecard.sel{border-color:#4f3ef5;background:#f0eeff}
+.ecard.rflagged{border-left:4px solid #b22a2a}
+.ecard.rwarning{border-left:4px solid #a05c00}
+.ecard.rsafe{border-left:4px solid #1a6e3c}
+.ehdr{display:flex;justify-content:space-between;margin-bottom:3px}
+.etype{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:#999}
+.etime{font-size:10px;color:#999}
+.etitle{font-size:13px;font-weight:700;color:#111;margin-bottom:2px}
+.emeta{font-size:11px;color:#777}
+.ebadge{position:absolute;top:10px;right:10px;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px}
+.bred{background:#fdeaea;color:#b22a2a}
+.bamber{background:#fff5e0;color:#a05c00}
+.bgreen{background:#e8f7ee;color:#1a6e3c}
+.empty{padding:20px;text-align:center;color:#999;font-size:13px;background:#f5f5f3;border-radius:10px;border:1.5px dashed #ddd}
+
+/* DETAIL */
+.dpanel{background:#f9f9f7;border:1.5px solid #ddd;border-radius:10px;padding:16px;margin-bottom:14px;display:none}
+.dpanel.on{display:block}
+
+/* SHARED */
+.slabel{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#999;margin-bottom:8px}
+.cbox{background:#f9f9f7;border:1.5px solid #e5e5e2;border-radius:10px;padding:12px;margin-bottom:12px;font-size:12px;line-height:1.9;color:#555}
+.cstep{display:flex;gap:8px;margin-bottom:5px;align-items:flex-start}
+.snum{background:#4f3ef5;color:#fff;border-radius:50%;width:19px;height:19px;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px}
+.srow{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+.slbl{font-size:11px;color:#777;width:145px;flex-shrink:0;text-align:right}
+.strack{flex:1;height:14px;background:#eee;border-radius:4px;overflow:hidden;position:relative}
+.sfill{height:14px;border-radius:4px;position:absolute;top:0;left:0}
+.sval{font-size:10px;font-weight:700;color:#111;width:34px}
+.abox{background:#f0eeff;border:1.5px solid #4f3ef5;border-radius:10px;padding:12px;margin-bottom:12px}
+.ahead{font-size:11px;font-weight:700;color:#4f3ef5;margin-bottom:6px;text-transform:uppercase;letter-spacing:.3px}
+.abox ul{padding-left:16px;font-size:12px;color:#444;line-height:2.1}
+
+/* CLAIM */
+.prow{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+.pbtn{padding:6px 12px;font-size:11px;border:1.5px solid #ddd;border-radius:20px;background:#f5f5f3;color:#555;cursor:pointer;font-weight:500}
+.pbtn:hover{border-color:#4f3ef5;color:#4f3ef5}
+.cgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.fg{display:flex;flex-direction:column;gap:4px}
+.fg label{font-size:11px;font-weight:600;color:#999;text-transform:uppercase;letter-spacing:.3px}
+.fg select,.fg input{padding:8px 10px;border:1.5px solid #ddd;border-radius:8px;font-size:13px;background:#f9f9f7;color:#111;outline:none}
+.fg select:focus,.fg input:focus{border-color:#4f3ef5}
+.full{grid-column:1/-1}
+.runbtn{width:100%;padding:12px;background:#4f3ef5;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;margin-bottom:16px}
+.runbtn:hover{opacity:.88}
+.results{display:none}
+.results.on{display:block}
+.verdict{padding:14px 16px;border-radius:10px;margin-bottom:14px;display:flex;align-items:center;gap:12px}
+.vicon{font-size:24px;flex-shrink:0}
+.vtxt h3{font-size:15px;font-weight:700;margin-bottom:2px}
+.vtxt p{font-size:12px;color:#555}
+.ccards{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.ccard{background:#f9f9f7;border:1.5px solid #e5e5e2;border-radius:10px;padding:12px}
+.cname{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;margin-bottom:5px}
+.cres{font-size:13px;font-weight:700;color:#111;margin-bottom:5px}
+.cnote{font-size:11px;color:#777;line-height:1.5}
+.bwrap{height:6px;background:#e5e5e2;border-radius:3px;margin-bottom:5px;overflow:hidden}
+.bfill{height:100%;border-radius:3px}
+
+/* ANOMALY */
+.agrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px}
+.aitem{background:#f9f9f7;border:1.5px solid #e5e5e2;border-radius:8px;padding:10px;text-align:center}
+.aval{font-size:20px;font-weight:700;color:#111;margin-bottom:2px}
+.albl{font-size:10px;color:#999;text-transform:uppercase;letter-spacing:.3px}
+.anote{font-size:10px;margin-top:4px;padding:2px 7px;border-radius:20px;display:inline-block;font-weight:700}
+
+/* CLUSTER */
+.cvis{background:#f9f9f7;border:1.5px solid #e5e5e2;border-radius:10px;padding:14px;margin-bottom:14px}
+.crow{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.cdot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.cinfo{flex:1;font-size:12px;color:#111}
+.cpct{font-size:13px;font-weight:700;color:#111}
+</style>
+</head>
+<body>
+<div class="app">
+  <h1>Healthcare Pattern Recognition</h1>
+  <div class="subtitle">XAI Demo — Pre-claim · Treatment · Payment · Operations</div>
+
+  <div class="tabs">
+    <button class="tab on"  id="tab0" onclick="switchTab(0)">Pre-claim</button>
+    <button class="tab"     id="tab1" onclick="switchTab(1)">Claim Analysis</button>
+    <button class="tab"     id="tab2" onclick="switchTab(2)">Anomaly</button>
+    <button class="tab"     id="tab3" onclick="switchTab(3)">Risk Clusters</button>
+  </div>
+
+  <!-- PRE-CLAIM -->
+  <div class="panel on" id="panel0">
+    <div class="filters">
+      <span class="flabel"><span class="pulse"></span>Live clinical events</span>
+      <button class="fbtn on" id="fb0" onclick="setFilter('all')">All (5)</button>
+      <button class="fbtn"    id="fb1" onclick="setFilter('flagged')">Flagged (2)</button>
+      <button class="fbtn"    id="fb2" onclick="setFilter('warning')">Warning (2)</button>
+      <button class="fbtn"    id="fb3" onclick="setFilter('safe')">Approved (1)</button>
+    </div>
+    <div class="tbar"><div class="tfill" id="tfill" style="width:0%"></div></div>
+    <div class="estream" id="estream"></div>
+    <div class="dpanel" id="dpanel">
+      <div class="slabel" style="margin-bottom:10px">Pre-claim chain reasoning</div>
+      <div id="dchain"></div>
+      <div class="slabel" style="margin-bottom:8px;margin-top:8px">XAI feature impact</div>
+      <div id="dshap"></div>
+      <div class="abox" style="margin-top:12px">
+        <div class="ahead">Intervention — before claim submitted</div>
+        <ul id="dactions"></ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- CLAIM ANALYSIS -->
+  <div class="panel" id="panel1">
+    <div class="slabel">Load a scenario</div>
+    <div class="prow">
+      <button class="pbtn" onclick="loadP('fwa')">🚨 FWA Pattern</button>
+      <button class="pbtn" onclick="loadP('dupe')">📋 Duplicate Claim</button>
+      <button class="pbtn" onclick="loadP('clean')">✅ Clean Claim</button>
+      <button class="pbtn" onclick="loadP('risk')">⚠️ High Risk Adjust</button>
+    </div>
+    <div class="cgrid">
+      <div class="fg"><label>Claim amount ($)</label><input type="number" id="fa" value="4200"/></div>
+      <div class="fg"><label>Provider type</label>
+        <select id="fp"><option value="specialist">Specialist</option><option value="pcp">Primary care</option><option value="hospital">Hospital</option><option value="dme">DME supplier</option><option value="lab">Laboratory</option></select>
+      </div>
+      <div class="fg"><label>Procedure code</label>
+        <select id="fc"><option value="99213">99213 — Office visit</option><option value="99215">99215 — Complex visit</option><option value="27447">27447 — Knee replacement</option><option value="93000">93000 — ECG</option><option value="80053">80053 — Metabolic panel</option><option value="99291">99291 — Critical care</option></select>
+      </div>
+      <div class="fg"><label>Diagnosis (ICD-10)</label>
+        <select id="fi"><option value="M17.11">M17.11 — Osteoarthritis</option><option value="I10">I10 — Hypertension</option><option value="E11.9">E11.9 — Type 2 diabetes</option><option value="J18.9">J18.9 — Pneumonia</option><option value="Z00.00">Z00.00 — Routine exam</option><option value="F32.9">F32.9 — Depression</option></select>
+      </div>
+      <div class="fg"><label>Claim frequency (30d)</label>
+        <select id="ff"><option value="1">1×</option><option value="3">3×</option><option value="8">8×</option><option value="22">22×</option></select>
+      </div>
+      <div class="fg"><label>Member risk score</label>
+        <select id="fr"><option value="0.3">0.30 — Low</option><option value="0.6">0.60 — Medium</option><option value="0.85">0.85 — High</option><option value="1.4">1.40 — Very high</option></select>
+      </div>
+      <div class="fg full"><label>Prior auth status</label>
+        <select id="fau"><option value="approved">Approved</option><option value="not_required">Not required</option><option value="denied">Denied</option><option value="pending">Pending / missing</option></select>
+      </div>
+    </div>
+    <button class="runbtn" onclick="runA()">Run Pattern Analysis</button>
+    <div class="results" id="results">
+      <div class="verdict" id="vbox"><div class="vicon" id="vicon"></div><div class="vtxt"><h3 id="vtitle"></h3><p id="vsub"></p></div></div>
+      <div class="slabel">Chain reasoning trace</div>
+      <div class="cbox" id="cchain"></div>
+      <div class="slabel">XAI feature impact (SHAP-style)</div>
+      <div id="cshap"></div>
+      <div class="slabel">Core AI capability outputs</div>
+      <div class="ccards" id="ccards"></div>
+      <div class="abox"><div class="ahead">Recommended actions</div><ul id="cacts"></ul></div>
+    </div>
+  </div>
+
+  <!-- ANOMALY -->
+  <div class="panel" id="panel2">
+    <div class="slabel">Provider billing pattern — last 90 days</div>
+    <div class="agrid" id="agrid"></div>
+    <div class="slabel">Isolation forest signal</div>
+    <div class="cvis" id="achart"></div>
+    <div class="cbox" id="aexplain"></div>
+  </div>
+
+  <!-- CLUSTER -->
+  <div class="panel" id="panel3">
+    <div class="slabel">Member population — risk cohorts</div>
+    <div class="cvis" id="cluvis"></div>
+    <div class="slabel">Inference: care gap prediction</div>
+    <div class="ccards" id="clucards"></div>
+    <div class="abox">
+      <div class="ahead">How clustering drives value</div>
+      <ul>
+        <li>Target outreach to High Risk Chronic cohort for preventive programs</li>
+        <li>Flag Rising Risk members before costly acute episodes develop</li>
+        <li>Validate risk adjustment coding accuracy per cohort vs. expected HCC scores</li>
+        <li>Benchmark HEDIS quality measure performance across cohorts</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Tab switching ──────────────────────────────────────────────
+var activeTab = 0;
+function switchTab(n) {
+  document.getElementById('tab' + activeTab).classList.remove('on');
+  document.getElementById('panel' + activeTab).classList.remove('on');
+  activeTab = n;
+  document.getElementById('tab' + n).classList.add('on');
+  document.getElementById('panel' + n).classList.add('on');
+  if (n === 2) buildAnomaly();
+  if (n === 3) buildCluster();
+}
+
+// ── Pre-claim events ───────────────────────────────────────────
+var EVENTS = [
+  { id: 0, risk: 'flagged', type: 'Prior Auth Request', time: '08:14 AM',
+    title: 'Knee replacement — bilateral',
+    meta: 'Member #M-4821 · Dr. Ortega · Northside Surgical', badge: 'High risk',
+    signals: [
+      { label: 'Clinical necessity',   val: 82, color: '#b22a2a' },
+      { label: 'Age vs. diagnosis',    val: 55, color: '#a05c00' },
+      { label: 'Conservative tx gap',  val: 78, color: '#b22a2a' },
+      { label: 'Peer benchmark',       val: 41, color: '#a05c00' }
+    ],
+    chain: [
+      'Auth requested for <strong>bilateral knee replacement (27447-50)</strong> — high-cost elective procedure.',
+      'Clinical record: member has <strong>4 months</strong> of conservative treatment. Guidelines require <strong>6 months minimum</strong> — threshold not met.',
+      'Member age 38, BMI 24 — atypical profile. Peer model flags <strong>low-probability clinical necessity</strong>.',
+      'Same provider requested 3 similar auths in 30 days — <strong>utilization outlier detected</strong>.',
+      'Decision: <strong>deny auth</strong> pending independent clinical review.'
+    ],
+    actions: [
+      'Deny prior auth — clinical necessity criteria not met',
+      'Request 6-month PT documentation from provider',
+      'Flag provider for utilization management review',
+      'Notify member of conservative treatment alternatives'
+    ]
+  },
+  { id: 1, risk: 'flagged', type: 'Prescription Order', time: '09:02 AM',
+    title: 'Opioid combination — high MME',
+    meta: 'Member #M-2290 · Dr. Patel · CVS #1142', badge: 'Urgent flag',
+    signals: [
+      { label: 'MME dose level',        val: 91, color: '#b22a2a' },
+      { label: 'Drug-drug interaction', val: 87, color: '#b22a2a' },
+      { label: 'Prior opioid history',  val: 73, color: '#b22a2a' },
+      { label: 'Prescriber pattern',    val: 44, color: '#a05c00' }
+    ],
+    chain: [
+      'Prescription: <strong>Oxycodone 80mg + Alprazolam 2mg</strong> — concurrent opioid + benzodiazepine.',
+      'Combined MME: <strong>240/day</strong> — exceeds CDC high-risk threshold of 90 MME.',
+      'Drug interaction model: opioid + benzo carries <strong>3.8× elevated overdose mortality risk</strong>.',
+      'Member filled 4 opioid scripts in 90 days from 3 prescribers — <strong>possible doctor shopping</strong>.',
+      'Intervention: <strong>pharmacist hold</strong> + prescriber notification before dispense.'
+    ],
+    actions: [
+      'Hold dispense — pending prescriber clinical justification',
+      'Alert prescribing physician of MME threshold breach',
+      'Flag member for substance use disorder care coordination',
+      'Notify PCP to coordinate pain management plan'
+    ]
+  },
+  { id: 2, risk: 'warning', type: 'Treatment Order', time: '10:31 AM',
+    title: 'MRI lumbar spine — acute back pain',
+    meta: 'Member #M-7734 · Dr. Kim · Metro Imaging', badge: 'Review',
+    signals: [
+      { label: 'Guideline match',          val: 48, color: '#a05c00' },
+      { label: 'Conservative tx duration', val: 35, color: '#a05c00' },
+      { label: 'Red flag symptoms',        val: 12, color: '#1a6e3c' },
+      { label: 'Cost vs. necessity',       val: 51, color: '#a05c00' }
+    ],
+    chain: [
+      'MRI lumbar spine ordered — acute low back pain onset <strong>9 days ago</strong>.',
+      'Guidelines: imaging indicated only after <strong>6 weeks</strong> of conservative treatment without improvement.',
+      'No red flag symptoms documented (no neurological deficits, no cancer history).',
+      'Conservative treatment documented: <strong>9 days only</strong>. 6-week threshold not met.',
+      'Recommend: <strong>defer imaging by 5 weeks</strong>, continue conservative management.'
+    ],
+    actions: [
+      'Request provider justification for early imaging',
+      'Continue conservative management — reassess at 6 weeks',
+      'Generate patient education material on back pain',
+      'Set follow-up trigger at 6-week mark'
+    ]
+  },
+  { id: 3, risk: 'safe', type: 'Lab Order', time: '11:45 AM',
+    title: 'Metabolic panel + lipid screen',
+    meta: 'Member #M-1056 · Dr. Nguyen · Quest Diagnostics', badge: 'Approved',
+    signals: [
+      { label: 'Last test interval', val: 15, color: '#1a6e3c' },
+      { label: 'Dx alignment',       val: 8,  color: '#1a6e3c' },
+      { label: 'Frequency norm',     val: 11, color: '#1a6e3c' },
+      { label: 'Member risk match',  val: 22, color: '#1a6e3c' }
+    ],
+    chain: [
+      'Annual metabolic panel + lipid screen for member with <strong>type 2 diabetes (E11.9)</strong>.',
+      'Last panel: <strong>11 months ago</strong> — within annual monitoring guidelines.',
+      'ADA guidelines recommend annual monitoring for T2D — <strong>clinically appropriate</strong>.',
+      'No frequency anomalies. No peer outlier signal. Member risk consistent with order.',
+      'Decision: <strong>approve</strong>. Expected claim ~$280.'
+    ],
+    actions: [
+      'Approve — no intervention required',
+      'Claim pre-authorized for expected amount $280',
+      'Add to annual care gap closure tracking for HEDIS'
+    ]
+  },
+  { id: 4, risk: 'warning', type: 'Prior Auth Request', time: '01:18 PM',
+    title: 'Inpatient psychiatric admission',
+    meta: 'Member #M-3367 · Dr. Osei · Lakeview Behavioral', badge: 'Review',
+    signals: [
+      { label: 'Crisis assessment score', val: 76, color: '#b22a2a' },
+      { label: 'Outpatient alternative',  val: 54, color: '#a05c00' },
+      { label: 'Prior admission history', val: 63, color: '#a05c00' },
+      { label: 'Level of care match',     val: 49, color: '#a05c00' }
+    ],
+    chain: [
+      'Inpatient psychiatric admission for <strong>major depressive episode (F32.9)</strong> — est. 7-day stay.',
+      'PHQ-9 score: <strong>19/27</strong> — severe depression. Suicidal ideation noted, no active plan.',
+      'Member has had <strong>2 prior inpatient admissions</strong> in 12 months.',
+      'IOP not yet attempted — may be clinically equivalent at lower cost.',
+      'Recommend: <strong>approve 3-day stabilization</strong> + concurrent IOP referral.'
+    ],
+    actions: [
+      'Approve 72-hour stabilization admission',
+      'Request peer-to-peer review for extension beyond day 3',
+      'Initiate care coordination for IOP transition plan',
+      'Flag for 30-day post-discharge follow-up'
+    ]
+  }
+];
+
+var currentFilter = 'all';
+var selectedId = -1;
+
+function setFilter(f) {
+  currentFilter = f;
+  // reset all four filter buttons
+  document.getElementById('fb0').classList.remove('on');
+  document.getElementById('fb1').classList.remove('on');
+  document.getElementById('fb2').classList.remove('on');
+  document.getElementById('fb3').classList.remove('on');
+  // activate the right one
+  if (f === 'all')     document.getElementById('fb0').classList.add('on');
+  if (f === 'flagged') document.getElementById('fb1').classList.add('on');
+  if (f === 'warning') document.getElementById('fb2').classList.add('on');
+  if (f === 'safe')    document.getElementById('fb3').classList.add('on');
+  // hide detail panel when filter changes
+  document.getElementById('dpanel').classList.remove('on');
+  selectedId = -1;
+  renderEvents();
+}
+
+function renderEvents() {
+  var out = [];
+  for (var i = 0; i < EVENTS.length; i++) {
+    var e = EVENTS[i];
+    if (currentFilter !== 'all' && e.risk !== currentFilter) continue;
+    out.push(e);
+  }
+  var stream = document.getElementById('estream');
+  if (out.length === 0) {
+    stream.innerHTML = '<div class="empty">No events match this filter.</div>';
+    return;
+  }
+  var html = '';
+  for (var j = 0; j < out.length; j++) {
+    var e = out[j];
+    var sel = (selectedId === e.id) ? ' sel' : '';
+    var bc  = e.risk === 'flagged' ? 'bred' : e.risk === 'warning' ? 'bamber' : 'bgreen';
+    html += '<div class="ecard r' + e.risk + sel + '" onclick="selectEvent(' + e.id + ')">';
+    html += '<div class="ehdr"><span class="etype">' + e.type + '</span><span class="etime">' + e.time + '</span></div>';
+    html += '<div class="etitle">' + e.title + '</div>';
+    html += '<div class="emeta">' + e.meta + '</div>';
+    html += '<span class="ebadge ' + bc + '">' + e.badge + '</span>';
+    html += '</div>';
+  }
+  stream.innerHTML = html;
+}
+
+function selectEvent(id) {
+  selectedId = id;
+  renderEvents();
+  var e = null;
+  for (var i = 0; i < EVENTS.length; i++) {
+    if (EVENTS[i].id === id) { e = EVENTS[i]; break; }
+  }
+  if (!e) return;
+
+  var ch = '';
+  for (var i = 0; i < e.chain.length; i++) {
+    ch += '<div class="cstep"><div class="snum">' + (i + 1) + '</div>';
+    ch += '<div class="cbox" style="margin:0 0 5px;padding:8px 10px;flex:1">' + e.chain[i] + '</div></div>';
+  }
+  document.getElementById('dchain').innerHTML = ch;
+
+  var sh = '';
+  for (var i = 0; i < e.signals.length; i++) {
+    var s = e.signals[i];
+    sh += '<div class="srow">';
+    sh += '<div class="slbl">' + s.label + '</div>';
+    sh += '<div class="strack"><div class="sfill" style="width:' + s.val + '%;background:' + s.color + '"></div></div>';
+    sh += '<div class="sval">' + s.val + '%</div>';
+    sh += '</div>';
+  }
+  document.getElementById('dshap').innerHTML = sh;
+
+  var ac = '';
+  for (var i = 0; i < e.actions.length; i++) ac += '<li>' + e.actions[i] + '</li>';
+  document.getElementById('dactions').innerHTML = ac;
+
+  var dp = document.getElementById('dpanel');
+  dp.classList.add('on');
+  dp.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+// Timeline animation
+(function () {
+  var w = 0;
+  var fill = document.getElementById('tfill');
+  var t = setInterval(function () {
+    w = Math.min(w + 1, 100);
+    fill.style.width = w + '%';
+    if (w >= 100) clearInterval(t);
+  }, 22);
+})();
+
+// ── Claim Analysis ─────────────────────────────────────────────
+var presets = {
+  fwa:  { a: 890,   p: 'dme',       c: '80053', i: 'Z00.00', f: '22', r: '0.3',  au: 'not_required' },
+  dupe: { a: 4200,  p: 'specialist', c: '99215', i: 'I10',    f: '8',  r: '0.6',  au: 'approved' },
+  clean:{ a: 320,   p: 'pcp',       c: '99213', i: 'E11.9',  f: '1',  r: '0.6',  au: 'not_required' },
+  risk: { a: 18500, p: 'hospital',   c: '27447', i: 'M17.11', f: '1',  r: '1.4',  au: 'pending' }
+};
+function loadP(k) {
+  var p = presets[k];
+  document.getElementById('fa').value  = p.a;
+  document.getElementById('fp').value  = p.p;
+  document.getElementById('fc').value  = p.c;
+  document.getElementById('fi').value  = p.i;
+  document.getElementById('ff').value  = p.f;
+  document.getElementById('fr').value  = p.r;
+  document.getElementById('fau').value = p.au;
+  document.getElementById('results').classList.remove('on');
+}
+
+function runA() {
+  var amount = +document.getElementById('fa').value;
+  var prov   = document.getElementById('fp').value;
+  var cpt    = document.getElementById('fc').value;
+  var icd    = document.getElementById('fi').value;
+  var freq   = +document.getElementById('ff').value;
+  var risk   = +document.getElementById('fr').value;
+  var auth   = document.getElementById('fau').value;
+
+  var fwa = 0, anom = 0, radj = risk, deny = 0;
+  if (freq >= 8)  fwa += 0.35;
+  if (freq >= 22) fwa += 0.25;
+  if (prov === 'dme') fwa += 0.2;
+  if (icd === 'Z00.00' && cpt !== '99213') fwa += 0.3;
+  if (auth === 'denied') fwa += 0.15;
+  if (amount > 10000 && risk < 0.5) fwa += 0.2;
+  if (fwa > 0.97) fwa = 0.97;
+
+  if (freq >= 8)  anom += 0.4;
+  if (amount > 5000) anom += 0.2;
+  if (auth === 'pending') anom += 0.2;
+  if (prov === 'dme' || prov === 'lab') anom += 0.15;
+  if (anom > 0.95) anom = 0.95;
+
+  if (icd === 'M17.11' || icd === 'E11.9') radj += 0.2;
+  if (cpt === '27447') radj += 0.15;
+  if (radj > 1.6) radj = 1.6;
+
+  if (auth === 'denied')  deny = 0.9;
+  else if (auth === 'pending') deny = 0.6;
+  if (freq >= 8) deny += 0.3;
+  if (amount > 8000 && auth !== 'approved') deny += 0.2;
+  if (deny > 0.95) deny = 0.95;
+
+  var overall = Math.max(fwa, deny * 0.7, anom * 0.6);
+
+  var vb = document.getElementById('vbox');
+  var vt = document.getElementById('vtitle');
+  var vs = document.getElementById('vsub');
+  var vi = document.getElementById('vicon');
+  if (overall >= 0.6) {
+    vb.style.cssText = 'background:#fdeaea;border:1.5px solid #b22a2a;padding:14px 16px;border-radius:10px;margin-bottom:14px;display:flex;align-items:center;gap:12px';
+    vi.textContent = '🚨'; vt.style.color = '#b22a2a';
+    vt.textContent = 'High risk — flag for review';
+    vs.textContent = 'Multiple risk signals detected. Recommend prepay hold and clinical review.';
+  } else if (overall >= 0.35) {
+    vb.style.cssText = 'background:#fff5e0;border:1.5px solid #a05c00;padding:14px 16px;border-radius:10px;margin-bottom:14px;display:flex;align-items:center;gap:12px';
+    vi.textContent = '⚠️'; vt.style.color = '#a05c00';
+    vt.textContent = 'Moderate risk — monitor';
+    vs.textContent = 'Some anomalous signals present. Post-pay audit recommended.';
+  } else {
+    vb.style.cssText = 'background:#e8f7ee;border:1.5px solid #1a6e3c;padding:14px 16px;border-radius:10px;margin-bottom:14px;display:flex;align-items:center;gap:12px';
+    vi.textContent = '✅'; vt.style.color = '#1a6e3c';
+    vt.textContent = 'Low risk — approve';
+    vs.textContent = 'No significant risk patterns detected. Claim consistent with member profile.';
+  }
+
+  var cL = { '99213':'office visit','99215':'complex visit','27447':'knee replacement','93000':'ECG','80053':'metabolic panel','99291':'critical care' };
+  var iL = { 'M17.11':'osteoarthritis','I10':'hypertension','E11.9':'type 2 diabetes','J18.9':'pneumonia','Z00.00':'routine exam','F32.9':'depression' };
+  var steps = [
+    'Parsed claim: <strong>$' + amount + '</strong> · <strong>' + prov + '</strong> · <strong>' + (cL[cpt]||cpt) + '</strong> · dx <strong>' + (iL[icd]||icd) + '</strong>.',
+    'Procedure–diagnosis alignment: ' + ((icd==='Z00.00'&&cpt!=='99213') ? '⚠️ Mismatch — high-cost procedure against routine exam code.' : '✓ Consistent.'),
+    'Billing frequency <strong>' + freq + '×/30d</strong>: ' + (freq>=22 ? '🚨 Extreme outlier.' : freq>=8 ? '⚠️ Elevated above peer benchmark.' : '✓ Within normal range.'),
+    'Member risk <strong>' + risk + '</strong> vs. claim <strong>$' + amount + '</strong>: ' + ((amount>8000&&risk<0.5) ? '⚠️ High-cost claim inconsistent with low-risk member.' : '✓ Proportionate.'),
+    'Auth status <strong>' + auth + '</strong>: ' + (auth==='denied' ? '🚨 Claim submitted despite denial.' : auth==='pending' ? '⚠️ Auth unresolved — hold claim.' : '✓ Confirmed.'),
+    'Overall risk: <strong>' + (overall*100).toFixed(0) + '%</strong> → <strong>' + (overall>=0.6?'Flag for review':overall>=0.35?'Monitor':'Approve') + '</strong>.'
+  ];
+  var ch = '';
+  for (var i = 0; i < steps.length; i++) {
+    ch += '<div class="cstep"><div class="snum">' + (i+1) + '</div><div>' + steps[i] + '</div></div>';
+  }
+  document.getElementById('cchain').innerHTML = ch;
+
+  var shapF = [
+    { label: 'Billing frequency',   val: Math.min(Math.round(freq/22*100),100), color: '#b22a2a' },
+    { label: 'Auth status',         val: auth==='denied'?90:auth==='pending'?55:10, color: '#a05c00' },
+    { label: 'Dx–procedure match',  val: (icd==='Z00.00'&&cpt!=='99213')?85:8, color: '#b22a2a' },
+    { label: 'Claim amount',        val: Math.min(Math.round(amount/18500*100),100), color: '#4f3ef5' },
+    { label: 'Member risk score',   val: Math.round(risk/1.6*100), color: '#0f7560' },
+    { label: 'Provider type risk',  val: prov==='dme'?75:prov==='lab'?45:prov==='specialist'?30:15, color: '#7c6ef8' }
+  ];
+  var sh = '';
+  for (var i = 0; i < shapF.length; i++) {
+    var s = shapF[i];
+    sh += '<div class="srow"><div class="slbl">' + s.label + '</div><div class="strack"><div class="sfill" style="width:' + s.val + '%;background:' + s.color + '"></div></div><div class="sval">' + s.val + '%</div></div>';
+  }
+  document.getElementById('cshap').innerHTML = sh;
+
+  var caps = [
+    { name:'Prediction',     color:'#4f3ef5', label:'Denial risk: '+(deny*100).toFixed(0)+'%', bar:Math.round(deny*100), bc:'#4f3ef5', note:(deny>=0.7?'High':'Moderate')+' denial likelihood based on auth and claim profile.' },
+    { name:'Classification', color:'#0f7560', label:fwa>=0.55?'FWA — suspected':overall<0.3?'Clean claim':'Review required', bar:Math.round(fwa*100), bc:'#0f7560', note:'Classified using dx alignment, frequency, and peer benchmarks.' },
+    { name:'Inference',      color:'#a05c00', label:'Adj. risk: '+radj.toFixed(2), bar:Math.min(Math.round(radj/1.6*100),100), bc:'#a05c00', note:'Inferred adjusted risk from diagnosis, procedure, and member profile.' },
+    { name:'Anomaly detect.',color:'#b22a2a', label:'Score: '+(anom*100).toFixed(0)+'%', bar:Math.round(anom*100), bc:'#b22a2a', note:(anom>0.5?'Significant deviation from peer group.':'Within normal bounds.') }
+  ];
+  var cc = '';
+  for (var i = 0; i < caps.length; i++) {
+    var c = caps[i];
+    cc += '<div class="ccard"><div class="cname" style="color:'+c.color+'">'+c.name+'</div>';
+    cc += '<div class="cres">'+c.label+'</div>';
+    cc += '<div class="bwrap"><div class="bfill" style="width:'+c.bar+'%;background:'+c.bc+'"></div></div>';
+    cc += '<div class="cnote">'+c.note+'</div></div>';
+  }
+  document.getElementById('ccards').innerHTML = cc;
+
+  var acts = [];
+  if (fwa >= 0.55) acts.push('Submit to FWA unit — prepay hold recommended');
+  if (auth === 'denied') acts.push('Reject claim — prior auth was denied');
+  if (auth === 'pending') acts.push('Hold payment pending auth resolution');
+  if (freq >= 8) acts.push('Pull 90-day billing history for this provider');
+  if (radj > 1.0) acts.push('Validate HCC coding accuracy');
+  if (deny >= 0.6) acts.push('Route to clinical reviewer before payment');
+  if (!acts.length) { acts.push('Approve for payment'); acts.push('Add to routine audit sample'); }
+  var ac = '';
+  for (var i = 0; i < acts.length; i++) ac += '<li>' + acts[i] + '</li>';
+  document.getElementById('cacts').innerHTML = ac;
+  document.getElementById('results').classList.add('on');
+}
+
+// ── Anomaly ────────────────────────────────────────────────────
+function buildAnomaly() {
+  var mx = [
+    { val:'22×',   lbl:'Claims / 30d', note:'99th pct',     nc:'#b22a2a', nb:'#fdeaea' },
+    { val:'$890',  lbl:'Avg claim',    note:'Above norm',   nc:'#a05c00', nb:'#fff5e0' },
+    { val:'0%',    lbl:'Auth rate',    note:'High risk',    nc:'#b22a2a', nb:'#fdeaea' },
+    { val:'Z00.00',lbl:'Top ICD-10',   note:'Mismatch',     nc:'#b22a2a', nb:'#fdeaea' },
+    { val:'0.91',  lbl:'Anomaly score',note:'Flag',         nc:'#b22a2a', nb:'#fdeaea' },
+    { val:'DME',   lbl:'Provider type',note:'Elevated risk',nc:'#a05c00', nb:'#fff5e0' }
+  ];
+  var h = '';
+  for (var i = 0; i < mx.length; i++) {
+    var m = mx[i];
+    h += '<div class="aitem"><div class="aval">'+m.val+'</div><div class="albl">'+m.lbl+'</div><div class="anote" style="color:'+m.nc+';background:'+m.nb+'">'+m.note+'</div></div>';
+  }
+  document.getElementById('agrid').innerHTML = h;
+
+  var peers = [
+    { label:'This provider',   val:91, color:'#b22a2a' },
+    { label:'Peer avg (DME)',  val:18, color:'#0f7560' },
+    { label:'P90 threshold',   val:45, color:'#a05c00' },
+    { label:'Peer cluster avg',val:22, color:'#4f3ef5' }
+  ];
+  var ch = '<div class="slabel" style="margin-bottom:10px">Anomaly score vs. peer benchmark</div>';
+  for (var i = 0; i < peers.length; i++) {
+    var p = peers[i];
+    ch += '<div class="srow"><div class="slbl">'+p.label+'</div><div class="strack"><div class="sfill" style="width:'+p.val+'%;background:'+p.color+'"></div></div><div class="sval">'+p.val+'</div></div>';
+  }
+  document.getElementById('achart').innerHTML = ch;
+
+  var ex = [
+    'Isolation forest trained on 90-day billing history across 2,400 DME providers.',
+    'This provider scores at the <strong>91st anomaly percentile</strong> — driven by claim frequency (22×/30d), zero prior-auth rate, and routine-exam codes paired with high-cost equipment.',
+    'Chain: frequency outlier → dx mismatch → no auth → cost-to-risk incongruence → <strong>FWA referral triggered</strong>.'
+  ];
+  var eh = '';
+  for (var i = 0; i < ex.length; i++) eh += '<div class="cstep"><div class="snum">'+(i+1)+'</div><div>'+ex[i]+'</div></div>';
+  document.getElementById('aexplain').innerHTML = eh;
+}
+
+// ── Cluster ────────────────────────────────────────────────────
+function buildCluster() {
+  var cohorts = [
+    { dot:'#b22a2a', label:'High risk chronic', pct:12, desc:'Complex multi-condition, high HCC score' },
+    { dot:'#a05c00', label:'Rising risk',        pct:21, desc:'Trending upward — early intervention opportunity' },
+    { dot:'#4f3ef5', label:'Stable chronic',     pct:29, desc:'Managed conditions, consistent utilization' },
+    { dot:'#0f7560', label:'Preventive',         pct:25, desc:'Low acuity — HEDIS quality targets' },
+    { dot:'#888888', label:'Low utilization',    pct:13, desc:'Minimal claims — care gap or healthy' }
+  ];
+  var vh = '<div class="slabel" style="margin-bottom:10px">k-means clusters — 5 member cohorts</div>';
+  for (var i = 0; i < cohorts.length; i++) {
+    var c = cohorts[i];
+    vh += '<div class="crow"><div class="cdot" style="background:'+c.dot+'"></div><div class="cinfo"><strong>'+c.label+'</strong> — '+c.desc+'</div><div class="cpct">'+c.pct+'%</div></div>';
+  }
+  document.getElementById('cluvis').innerHTML = vh;
+
+  var cards = [
+    { name:'Inference',     color:'#4f3ef5', label:'Care gaps inferred',    bar:68,  bc:'#4f3ef5', note:'68% of High Risk Chronic members likely have ≥1 unaddressed care gap.' },
+    { name:'Prediction',    color:'#0f7560', label:'30d readmit risk: 34%', bar:34,  bc:'#0f7560', note:'Rising Risk cohort — outreach recommended within 7 days post-discharge.' },
+    { name:'Classification',color:'#a05c00', label:'HCC accuracy: 71%',     bar:71,  bc:'#a05c00', note:'~29% of High Risk members may have undercoded conditions.' },
+    { name:'Clustering',    color:'#b22a2a', label:'5 cohorts identified',  bar:100, bc:'#b22a2a', note:'k-means (k=5) converged on distinct utilization and diagnosis profiles.' }
+  ];
+  var cc = '';
+  for (var i = 0; i < cards.length; i++) {
+    var c = cards[i];
+    cc += '<div class="ccard"><div class="cname" style="color:'+c.color+'">'+c.name+'</div><div class="cres">'+c.label+'</div><div class="bwrap"><div class="bfill" style="width:'+c.bar+'%;background:'+c.bc+'"></div></div><div class="cnote">'+c.note+'</div></div>';
+  }
+  document.getElementById('clucards').innerHTML = cc;
+}
+
+// ── Init ───────────────────────────────────────────────────────
+renderEvents();
+</script>
+</body>
+</html>
